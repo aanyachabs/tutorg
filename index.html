@@ -1859,72 +1859,76 @@ function pgPolicies(){
   }));
   pg.appendChild(top);
 
-  var card=mkCard();
-  card.appendChild(el('div',{style:{fontSize:13,color:'var(--muted)',marginBottom:20,lineHeight:1.7,padding:'12px 14px',background:'var(--card)',borderRadius:10,border:'1px solid var(--border)'}},'✏️  Every field below is fully editable. Write exactly what you want, or leave any field blank to skip that policy entirely. These appear automatically in your billing messages.'));
+  var introCard=mkCard();
+  introCard.appendChild(el('div',{style:{fontSize:13,color:'var(--muted)',lineHeight:1.7}},'✏️  Every field below is fully editable. Write exactly what you want, or leave any field blank to skip that policy entirely. These appear automatically in your billing messages.'));
+  pg.appendChild(introCard);
 
-  var previewBox=el('pre',{style:{background:'var(--card)',borderRadius:10,padding:14,fontSize:12,lineHeight:1.9,whiteSpace:'pre-wrap',fontFamily:'inherit',color:'var(--text-primary)',border:'1px solid var(--border)',minHeight:60}});
+  var previewBox=el('pre',{style:{margin:0,fontSize:12,lineHeight:1.9,whiteSpace:'pre-wrap',fontFamily:'inherit',color:'var(--text-primary)',background:'none',border:'none',padding:0}});
 
   function updatePreview(){
     var txt=buildPolicyText(local);
     previewBox.textContent=txt||'(No policies set — billing messages will have no policy text)';
-    previewBox.style.color=txt?'var(--navy)':'var(--muted)';
+    previewBox.style.color=txt?'var(--text-primary)':'var(--muted)';
   }
 
+  // Each policy is now its own card, styled the same way as a day on the
+  // Schedule page: an orange all-caps label up top (.day-hdr), and the
+  // editable content living inside the same light "slot" box used for
+  // schedule entries (.slot-pill), so the two pages read as one system.
   function policyField(title,desc,key,placeholder){
-    var w=el('div',{style:{marginBottom:22,paddingBottom:22,borderBottom:'1px solid var(--border)'}});
-    var hdr=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}});
-    hdr.appendChild(el('div',{style:{fontWeight:700,color:'var(--text-primary)',fontSize:14}},title));
-    // Clear button
-    var clearBtn=el('button',{style:{fontSize:11,color:'var(--muted)',background:'none',border:'none',cursor:'pointer',padding:'2px 6px',borderRadius:6,textDecoration:'underline'}},'Clear');
+    var w=mkCard();
+    var hdr=el('div',{className:'day-hdr',style:{justifyContent:'space-between'}});
+    hdr.appendChild(el('span',{},title));
+    var clearBtn=el('button',{style:{fontSize:11,color:'var(--muted)',background:'none',border:'none',cursor:'pointer',padding:'2px 6px',borderRadius:6,textDecoration:'underline',textTransform:'none',letterSpacing:'normal',fontWeight:600}},'Clear');
     clearBtn.addEventListener('click',function(){ta.value='';local[key]='';updatePreview();});
     hdr.appendChild(clearBtn);
     w.appendChild(hdr);
-    w.appendChild(el('div',{style:{fontSize:12,color:'var(--muted)',marginBottom:8}},desc));
+    w.appendChild(el('div',{style:{fontSize:12,color:'var(--muted)',marginBottom:10}},desc));
+    var pillBox=el('div',{className:'slot-pill',style:{padding:0,marginBottom:0}});
     var ta=el('textarea',{rows:2,placeholder:placeholder,
-      style:{border:'1.5px solid var(--border)',borderRadius:9,padding:'10px 12px',fontSize:13,
+      style:{border:'none',background:'none',padding:'10px 14px',fontSize:13,
         fontFamily:'inherit',width:'100%',outline:'none',resize:'vertical',
-        boxSizing:'border-box',lineHeight:1.7,color:'var(--text-primary)'}});
+        boxSizing:'border-box',lineHeight:1.7,color:'var(--text-primary)',display:'block'}});
     ta.value=local[key]||'';
     ta.addEventListener('input',function(){local[key]=ta.value;updatePreview();});
-    // Focus styling
-    ta.addEventListener('focus',function(){ta.style.borderColor='var(--accent)';});
-    ta.addEventListener('blur',function(){ta.style.borderColor='var(--border)';});
-    w.appendChild(ta);
+    pillBox.appendChild(ta);
+    w.appendChild(pillBox);
     return w;
   }
 
-  card.appendChild(policyField(
+  pg.appendChild(policyField(
     '💳 Payment Policy',
     'When payment is due and what happens if it\'s late. Leave blank to include no payment policy.',
     'paymentPolicy',
     'e.g. Payment is due within 3 days of this message. Delayed payments will not be accepted.'
   ));
-  card.appendChild(policyField(
+  pg.appendChild(policyField(
     '🚫 No-Show Policy',
     'What happens if a student misses a scheduled session. Leave blank to skip.',
     'noShowPolicy',
     'e.g. Sessions not attended without prior notice will be charged in full.'
   ));
-  card.appendChild(policyField(
+  pg.appendChild(policyField(
     '⏰ Cancellation Policy',
     'Notice period and charges for late cancellations. Leave blank to skip.',
     'cancellationPolicy',
     'e.g. Cancellations must be made at least 24 hours in advance. Late cancellations will be charged 50%.'
   ));
-  card.appendChild(policyField(
+  pg.appendChild(policyField(
     '📝 Additional Notes',
     'UPI details, refund policy, or anything else you want in every billing message. Leave blank to skip.',
     'customNote',
     'e.g. All payments via UPI to 9876543210@upi. No refunds once sessions are confirmed.'
   ));
 
-  pg.appendChild(card);
-
-  // Preview card
+  // Preview card — same card+day-hdr+slot-pill pattern as the policy fields above
   var previewCard=mkCard();
-  previewCard.appendChild(el('div',{style:{fontWeight:700,color:'var(--text-primary)',fontSize:14,marginBottom:10}},'👁 Preview — what appears in billing messages:'));
+  previewCard.appendChild(el('div',{className:'day-hdr'},'👁 Preview'));
+  previewCard.appendChild(el('div',{style:{fontSize:12,color:'var(--muted)',marginBottom:10}},'What appears in your billing messages:'));
+  var previewPill=el('div',{className:'slot-pill',style:{padding:'12px 14px'}});
   updatePreview();
-  previewCard.appendChild(previewBox);
+  previewPill.appendChild(previewBox);
+  previewCard.appendChild(previewPill);
   pg.appendChild(previewCard);
 
   return pg;
