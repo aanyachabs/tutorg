@@ -1512,10 +1512,14 @@ function pgBilling(){
     pg.innerHTML='';
     var top=el('div',{className:'page-top'});
     top.appendChild(el('h2',{className:'page-title'},'Billing'));
-    var ctrl=el('div',{style:{display:'flex',gap:6,alignItems:'center'}});
-    ctrl.appendChild(mkSel(month,MONTHS.map(function(m,i){return[i,m];}),function(v){month=Number(v);render_();}));
-    var yI=mkInp('number',year,function(v){year=Number(v);render_();},'');yI.style.width='72px';
-    ctrl.appendChild(yI);top.appendChild(ctrl);pg.appendChild(top);
+    var ctrl=el('div',{style:{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}});
+    var moSel=mkSel(month,MONTHS.map(function(m,i){return[i,m];}),function(v){month=Number(v);render_();});
+    moSel.style.width='auto';moSel.style.minWidth='118px';moSel.style.flex='0 0 auto';
+    ctrl.appendChild(moSel);
+    var yrOpts=[];for(var yy=NOW.getFullYear()-3;yy<=NOW.getFullYear()+1;yy++){yrOpts.push([yy,String(yy)]);}
+    var yrSel=mkSel(year,yrOpts,function(v){year=Number(v);render_();});
+    yrSel.style.width='auto';yrSel.style.minWidth='84px';yrSel.style.flex='0 0 auto';
+    ctrl.appendChild(yrSel);top.appendChild(ctrl);pg.appendChild(top);
     var ML=MONTHS[month]+' '+year;
     var bills=S.students.map(function(stu){
       var ss=S.sessions.filter(function(s){var d=new Date(s.date);return s.studentId===stu.id&&d.getMonth()===month&&d.getFullYear()===year;});
@@ -2107,7 +2111,7 @@ function pgMaterials(){
     pg.appendChild(top);
     var filterOpts=[['all','All Students']].concat(S.students.map(function(s){return[s.id,s.name];}));
     var filterSel=mkSel(filterStu,filterOpts,function(v){filterStu=v;render_();});
-    filterSel.style.cssText='width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;background:#fff;outline:none;-webkit-appearance:none;margin-bottom:14px;display:block;';
+    Object.assign(filterSel.style,{width:'100%',marginBottom:'14px',display:'block'});
     pg.appendChild(filterSel);
     function szStr(b){return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(0)+'KB';}
     var studsToShow=filterStu==='all'?S.students:S.students.filter(function(s){return s.id===filterStu;});
@@ -2382,7 +2386,7 @@ function pgWhiteboard(){
   var selectedEl=null;
   var zoom=1,panX=0,panY=0;
   var isPanning=false,panStart=null;
-  var bgColor='#1a1a2e';
+  var bgColor=document.documentElement.getAttribute('data-theme')==='light'?'#FFFFFF':'#1a1a2e';
 
   var wrap=el('div',{className:'page-wb',style:{position:'relative',background:bgColor,overflow:'hidden',userSelect:'none'}});
 
@@ -2749,7 +2753,7 @@ function pgWhiteboard(){
     var ctx=cv.getContext('2d');
     ctx.fillStyle=bgColor;ctx.fillRect(0,0,cv.width,cv.height);
     // Grid dots
-    ctx.fillStyle='rgba(255,255,255,.06)';
+    ctx.fillStyle=bgColor==='#FFFFFF'?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)';
     for(var gx=40;gx<cv.width;gx+=40){
       for(var gy=40;gy<cv.height;gy+=40){
         ctx.beginPath();ctx.arc(gx,gy,1.5,0,Math.PI*2);ctx.fill();
