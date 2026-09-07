@@ -545,13 +545,28 @@ var MONTHS=['January','February','March','April','May','June','July','August','S
 var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var NOW=new Date();
 
+// CSS properties where a bare number is valid CSS on its own (no unit).
+// Everything else that gets a plain JS number in a style object needs 'px'
+// appended, or the browser silently rejects the whole declaration — which is
+// exactly what was happening throughout this file (width:52 etc. never
+// actually applied, since `el.style.width = 52` is invalid CSS and gets
+// dropped, not coerced to "52px" the way React does it automatically).
+var UNITLESS_CSS_PROPS={opacity:1,zIndex:1,fontWeight:1,lineHeight:1,flex:1,flexGrow:1,flexShrink:1,order:1,zoom:1,columnCount:1,gridColumn:1,gridRow:1,gridColumnStart:1,gridColumnEnd:1,gridRowStart:1,gridRowEnd:1,tabSize:1,widows:1,orphans:1,animationIterationCount:1,scale:1,aspectRatio:1};
 function el(tag,attrs){
   var e=document.createElement(tag);
   var children=Array.prototype.slice.call(arguments,2);
   if(attrs){
     Object.keys(attrs).forEach(function(k){
       var v=attrs[k];
-      if(k==='style'&&typeof v==='object'){Object.assign(e.style,v);}
+      if(k==='style'&&typeof v==='object'){
+        var sv={};
+        Object.keys(v).forEach(function(sk){
+          var val=v[sk];
+          if(typeof val==='number'&&!UNITLESS_CSS_PROPS[sk])val=val+'px';
+          sv[sk]=val;
+        });
+        Object.assign(e.style,sv);
+      }
       else if(k.indexOf('on')===0&&typeof v==='function'){e.addEventListener(k.slice(2).toLowerCase(),v);}
       else if(k==='className'){e.className=v;}
       else{e.setAttribute(k,v);}
