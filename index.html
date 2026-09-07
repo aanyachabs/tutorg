@@ -2964,10 +2964,20 @@ function pgWhiteboard(){
           textShadow:'0 1px 4px rgba(0,0,0,.5)'
         }},el_.text||'Text');
         ta.addEventListener('blur',function(){el_.text=ta.textContent;});
+        // Style button — lets you change color/size/font AFTER placing the
+        // text, not just at creation time. Wording itself is already editable
+        // via the contentEditable div above (click and type).
+        var styleBtn2=el('button',{title:'Edit color, size & font',style:{
+          position:'absolute',top:-10,right:14,background:el_.color||'#fff',border:'2px solid rgba(255,255,255,.6)',borderRadius:'50%',width:18,height:18,cursor:'pointer',padding:0
+        }});
+        styleBtn2.addEventListener('click',function(e){
+          e.stopPropagation();
+          openTextStylePopup(el_,styleBtn2,d);
+        });
         var del2=el('button',{style:{position:'absolute',top:-10,right:-10,background:'rgba(231,76,60,.8)',border:'none',borderRadius:'50%',width:18,height:18,fontSize:10,cursor:'pointer',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center'}});
         del2.textContent='×';
         (function(idx){del2.addEventListener('click',function(){elements.splice(idx,1);renderElements();});})(i);
-        d.appendChild(ta);d.appendChild(del2);
+        d.appendChild(ta);d.appendChild(styleBtn2);d.appendChild(del2);
       }
       if(d){
         // Drag to move
@@ -2982,7 +2992,58 @@ function pgWhiteboard(){
     });
   }
 
-  // ── STICKY NOTE COLORS ──
+  // Style popup for an existing text box — color, size, and font, editable
+  // any time after placement (not just when first creating it).
+  var TEXT_FONTS=[['inherit','Default'],['Georgia,serif','Serif'],['"Courier New",monospace','Mono'],['"Comic Sans MS",cursive','Casual']];
+  function openTextStylePopup(el_,anchorBtn,boxEl){
+    var existing=wrap.querySelector('.wb-text-style-popup');
+    if(existing)existing.remove();
+    var popup=el('div',{className:'wb-text-style-popup',style:{
+      position:'absolute',zIndex:100,
+      background:'rgba(22,34,54,.98)',borderRadius:12,padding:12,
+      display:'flex',flexDirection:'column',gap:10,
+      boxShadow:'0 4px 24px rgba(0,0,0,.5)',border:'1px solid rgba(255,255,255,.1)',minWidth:190
+    }});
+    var colorRow=el('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}});
+    ['#FFFFFF','#E8703A','#3DB868','#F0B429','#4A90D9','#E74C3C','#9B59B6','#000000'].forEach(function(c){
+      var b=el('div',{style:{width:22,height:22,aspectRatio:'1',borderRadius:'50%',background:c,cursor:'pointer',border:c===el_.color?'2px solid #fff':'2px solid rgba(255,255,255,.2)',flexShrink:0,boxSizing:'border-box'}});
+      b.addEventListener('click',function(){el_.color=c;renderElements();wrap.querySelector('.wb-text-style-popup')&&wrap.removeChild(wrap.querySelector('.wb-text-style-popup'));});
+      colorRow.appendChild(b);
+    });
+    popup.appendChild(colorRow);
+
+    var sizeRow=el('div',{style:{display:'flex',gap:6,alignItems:'center'}});
+    var szSel2=el('select',{style:{background:'rgba(255,255,255,.1)',color:'#fff',border:'1px solid rgba(255,255,255,.2)',borderRadius:8,padding:'5px 8px',fontSize:12,fontFamily:'inherit',flex:1}});
+    [16,20,24,32,48,64].forEach(function(s){var o=el('option',{value:s},s+'px');if(s===(el_.size||24))o.setAttribute('selected','selected');szSel2.appendChild(o);});
+    szSel2.addEventListener('change',function(){el_.size=parseInt(szSel2.value)||24;renderElements();});
+    sizeRow.appendChild(el('span',{style:{fontSize:11,color:'rgba(255,255,255,.5)',fontWeight:700}},'SIZE'));
+    sizeRow.appendChild(szSel2);
+    popup.appendChild(sizeRow);
+
+    var fontRow=el('div',{style:{display:'flex',gap:6,alignItems:'center'}});
+    var fontSel=el('select',{style:{background:'rgba(255,255,255,.1)',color:'#fff',border:'1px solid rgba(255,255,255,.2)',borderRadius:8,padding:'5px 8px',fontSize:12,fontFamily:'inherit',flex:1}});
+    TEXT_FONTS.forEach(function(f){var o=el('option',{value:f[0]},f[1]);if(f[0]===(el_.font||'inherit'))o.setAttribute('selected','selected');fontSel.appendChild(o);});
+    fontSel.addEventListener('change',function(){el_.font=fontSel.value;renderElements();});
+    fontRow.appendChild(el('span',{style:{fontSize:11,color:'rgba(255,255,255,.5)',fontWeight:700}},'FONT'));
+    fontRow.appendChild(fontSel);
+    popup.appendChild(fontRow);
+
+    wrap.appendChild(popup);
+    // popup lives on `wrap` (untransformed) so its own UI stays a consistent
+    // size regardless of canvas zoom — but that means we have to manually
+    // apply the canvas's pan/zoom to the text box's canvas-space coordinates
+    // to find where it actually sits on screen, rather than using el_.x/y directly.
+    popup.style.left=(panX+el_.x*zoom)+'px';
+    popup.style.top=(panY+el_.y*zoom-40)+'px';
+
+    setTimeout(function(){
+      document.addEventListener('click',function closePopup(e){
+        if(!popup.contains(e.target)){popup.remove();document.removeEventListener('click',closePopup);}
+      });
+    },0);
+  }
+
+
   var stickyColors=['#F0B429','#3DB868','#4A90D9','#E8703A','#9B59B6','#E74C3C','#FFFFFF'];
   var currentStickyColor=stickyColors[0];
 
