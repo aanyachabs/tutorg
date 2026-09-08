@@ -575,6 +575,14 @@ function el(tag,attrs){
   return e;
 }
 function bdg(txt,c,bg){return el('span',{className:'badge',style:{color:c||'var(--accent)',background:bg||'var(--accentL)'}},txt);}
+function fmtTime12(t){
+  var parts=(t||'').split(':');
+  var h=parseInt(parts[0],10),m=parts[1]||'00';
+  if(isNaN(h))return t;
+  var ampm=h>=12?'PM':'AM';
+  var h12=h%12;if(h12===0)h12=12;
+  return h12+':'+m+' '+ampm;
+}
 function fld(label,inputEl){return el('div',{className:'field'},el('label',{},label),inputEl);}
 function mkBtn(txt,cls,sz,onClick){var b=el('button',{className:'btn '+(cls||'btn-primary')+' '+(sz||'btn-md')},txt);if(onClick)b.addEventListener('click',onClick);return b;}
 function showToast(msg){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A2740;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3);';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2500);}
@@ -1031,6 +1039,13 @@ function renderApp(){
       localStorage.setItem('tutorg-theme','light');
       themeIcon.textContent='☀️';themeLabel.textContent=' Light mode';
     }
+    // The whiteboard's canvas is hand-painted pixels (ctx.fillRect), not CSS —
+    // so unlike every other page, it does NOT pick up a theme change on its
+    // own. Force it to fully remount so it repaints with the new bg color,
+    // or switching themes while already on the whiteboard leaves the canvas
+    // showing the OLD color (and can make strokes hard/impossible to see
+    // against it, since the two were never meant to coexist).
+    if(S.tab==='whiteboard')renderApp();
   });
   sbf.appendChild(themeBtn);
   if(S.subscription&&!S.subscription.isAdmin&&S.subscription.daysLeft!==null&&S.subscription.daysLeft<=7){
@@ -1392,10 +1407,16 @@ function pgSchedule(){
         borderRadius:8,padding:'3px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'
       }},'📋 Copy');
       copyBtn.addEventListener('click',function(){
-        var lines=slots.map(function(slot){
+        // Group students who share the same time slot onto one line instead
+        // of a separate line each, and show 12-hour time instead of 24-hour.
+        var byTime={},order=[];
+        slots.forEach(function(slot){
           var stu=S.students.find(function(s){return s.id===slot.studentId;});
-          return slot.time+' — '+(stu?stu.name:'?')+(slot.note?' ('+slot.note+')':'');
+          var name=(stu?stu.name:'?')+(slot.note?' ('+slot.note+')':'');
+          if(!byTime[slot.time]){byTime[slot.time]=[];order.push(slot.time);}
+          byTime[slot.time].push(name);
         });
+        var lines=order.map(function(t){return fmtTime12(t)+' — '+byTime[t].join(', ');});
         var text=day+'\'s Schedule:\n\n'+lines.join('\n');
         if(navigator.clipboard)navigator.clipboard.writeText(text);
         showToast(day+'\'s schedule copied!');
